@@ -15,13 +15,18 @@
 //You should have received a copy of the GNU General Public License
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include <ash_rand/ash_rand.h>
+#include <ash_rand/rng.hpp>
 
-ash_rand::AshRand::AshRand()
-{
-}
- 
-ash_rand::AshRand::~AshRand()
-{
+#include <iostream>
+using namespace std;
+
+int main() {
+    ash_rand::pcg32 rng;
+    rng.random_seed();
+    cout << rng() << endl;
+    cout << rng() << endl;
+    cout << rng() << endl;
+    cout << rng() << endl;
+    cout << rng() << endl;
 }
 

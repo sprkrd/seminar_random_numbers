@@ -3,173 +3,239 @@
 #include <random>
 
 
-namespace ash::random {
+namespace ash_rand {
 
 inline uint64_t produce_random_seed() {
-  std::random_device rdev;
-  return ((uint64_t)rdev())<<32 | rdev();
+    std::random_device rdev;
+    return ((uint64_t)rdev())<<32 | rdev();
 }
 
-class Ran {
-  public:
-    typedef uint64_t result_t;
-    typedef std::array<result_t,3> state_t;
+class ran {
+    // From numerical recipes. 192 bit state, 64 bit generator, 3.138 * 10^57 period
 
-    static constexpr result_t min() { return 0; }
-    static constexpr result_t max() { return ~result_t(0ULL); }
+    public:
+        typedef uint64_t result_type;
+        typedef std::array<result_type,3> state_type;
 
-    Ran(result_t s = 0) {
-      seed(s);
-    }
+        static constexpr result_type min() { return 0; }
+        static constexpr result_type max() { return ~result_type(0ULL); }
 
-    const state_t& state() const {
-      return m_state;
-    }
+        ran(result_type s = 0) {
+            seed(s);
+        }
 
-    void state(const state_t& state) {
-      m_state = state;
-    }
+        const state_type& state() const {
+            return m_state;
+        }
 
-    void seed(result_t s) {
-      m_state[1] = 4101842887655102017ULL;
-      m_state[2] = 1;
-      m_state[0] = s^m_state[1]; (*this)();
-      m_state[1] = m_state[0]; (*this)();
-      m_state[2] = m_state[1]; (*this)();
-    }
+        void state(const state_type& new_state) {
+            m_state = new_state;
+        }
 
-    void random_seed() {
-      seed(produce_random_seed());
-    }
+        void seed(result_type s) {
+            m_state[1] = 4101842887655102017ULL;
+            m_state[2] = 1;
+            m_state[0] = s^m_state[1];
+            (*this)();
+            m_state[1] = m_state[0];
+            (*this)();
+            m_state[2] = m_state[1];
+            (*this)();
+        }
 
-    result_t operator()() {
-      m_state[0] = m_state[0]*2862933555777941757ULL +
-                   7046029254386353087ULL;
-      m_state[1] ^= m_state[1] >> 17;
-      m_state[1] ^= m_state[1] << 31;
-      m_state[1] ^= m_state[1] >> 8;
-      m_state[2] = 4294957665ULL*(m_state[2]&0xffffffffULL) +
-                   (m_state[2] >> 32);
-      uint64_t x = m_state[0] ^ (m_state[0] << 21);
-      x ^= x >> 35;
-      x ^= x << 4;
-      return (x + m_state[1]) ^ m_state[2];
-    }
+        void random_seed() {
+            seed(produce_random_seed());
+        }
 
-  private:
-    state_t m_state;
+        result_type operator()() {
+            m_state[0] = m_state[0]*2862933555777941757LL + 7046029254386353087LL;
+            m_state[1] ^= m_state[1] >> 17;
+            m_state[1] ^= m_state[1] << 31;
+            m_state[1] ^= m_state[1] >> 8;
+            m_state[2] = 4294957665U*(m_state[2]&0xffffffff) + (m_state[2] >> 32);
+            uint64_t x = m_state[0] ^ (m_state[0] << 21);
+            x ^= x >> 35;
+            x ^= x << 4;
+            return (x + m_state[1]) ^ m_state[2];
+        }
+
+    private:
+        state_type m_state;
 };
 
-class RanQ1 {
-  public:
-    typedef uint64_t result_t;
+class ranq1 {
+    // From numerical recipes. 64 bit state, 64 bit generator, 2**64 period
+    
+    public:
+        typedef uint64_t result_type;
+        typedef uint64_t state_type;
 
-    static constexpr result_t min() { return 0; }
-    static constexpr result_t max() { return ~result_t(0ULL); }
+        static constexpr result_type min() { return 0; }
+        static constexpr result_type max() { return ~result_type(0ULL); }
 
-    RanQ1(result_t s = 0) {
-      seed(s);
-    }
+        ranq1(result_type s = 0) {
+            seed(s);
+        }
 
-    void seed(result_t s) {
-      m_v = 4101842887655102017ULL;
-      m_v ^= s;
-      m_v = (*this)();
-    }
+        state_type state() const {
+            return m_state;
+        }
 
-    void random_seed() {
-      seed(produce_random_seed());
-    }
+        void state(state_type new_state) {
+            m_state = new_state;
+        }
 
-    result_t operator()() {
-      m_v ^= m_v >> 21; m_v ^= m_v << 35; m_v ^= m_v >> 4;
-      return m_v*2685821657736338717ULL;
-    }
+        void seed(result_type s) {
+            m_state = 4101842887655102017ULL;
+            m_state ^= s;
+            m_state = (*this)();
+        }
 
-  private:
-    result_t m_v;
+        void random_seed() {
+            seed(produce_random_seed());
+        }
+
+        result_type operator()() {
+            m_state ^= m_state >> 21;
+            m_state ^= m_state << 35;
+            m_state ^= m_state >> 4;
+            return m_state * 2685821657736338717LL;
+        }
+
+    private:
+        state_type m_state;
 };
 
 class pcg32 {
-  /* 64bit state, 32bit output, period of 2^64 (~1.8e19)*/
-  public:
-    typedef uint32_t result_t;
-    typedef uint64_t state_t;
+    /* By Melissa O'Neil. 64bit state, 32bit output, period of 2^64 (~1.8e19)*/
 
-    static constexpr state_t mul = 6364136223846793005ULL;
-    static constexpr state_t inc = 1442695040888963407ULL;
+    public:
+        typedef uint32_t result_type;
+        typedef uint64_t state_type;
 
-    static constexpr result_t min() { return 0; }
-    static constexpr result_t max() { return ~result_t(0ULL); }
+        static constexpr state_type mul = 6364136223846793005ULL;
+        static constexpr state_type inc = 1442695040888963407ULL;
 
-    pcg32(state_t s = 0) { seed(s); }
+        static constexpr result_type min() { return 0; }
+        static constexpr result_type max() { return ~result_type(0ULL); }
 
-    void seed(state_t s) {
-      m_state = s;
-      (*this)();
-    }
+        pcg32(state_type s = 0) { seed(s); }
 
-    void random_seed() {
-      seed(produce_random_seed());
-    }
+        state_type state() const {
+            return m_state;
+        }
 
-    result_t operator()() {
-      state_t old_state = m_state;
-      m_state = m_state*mul + inc;
-      result_t xorshifted = ((old_state>>18)^old_state) >> 27;
-      result_t rot = old_state >> 59;
-      return (xorshifted>>rot) | (xorshifted<<((-rot)&31));
-    }
-  private:
-    state_t m_state;
+        void state(state_type new_state) {
+            m_state = new_state;
+        }
+
+        void seed(state_type s) {
+            m_state = s;
+            (*this)();
+        }
+
+        void random_seed() {
+            seed(produce_random_seed());
+        }
+
+        result_type operator()() {
+            state_type old_state = m_state;
+            m_state = m_state*mul + inc;
+            result_type xorshifted = ((old_state>>18)^old_state) >> 27;
+            result_type rot = old_state >> 59;
+            return (xorshifted>>rot) | (xorshifted<<((-rot)&31));
+        }
+
+    private:
+        state_type m_state;
+};
+
+class splitmix64 {
+    // Java default RNG: 64 bit state and output, 2^64 period
+    public:
+        typedef uint64_t result_type;
+        typedef uint64_t state_type;
+
+        static constexpr result_type min() { return 0; }
+        static constexpr result_type max() { return ~result_type(0ULL); }
+
+        splitmix64(result_type s = 0) : m_state(s) { }
+
+        state_type state() const {
+            return m_state;
+        }
+
+        void state(state_type state) {
+            m_state = state;
+        }
+
+        void seed(state_type s) {
+            m_state = s;
+        }
+
+        void random_seed() {
+            seed(produce_random_seed());
+        }
+
+        result_type operator()() {
+            result_type z = (m_state += 0x9e3779b97f4a7c15ULL);
+        	z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
+        	z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
+        	return z ^ (z >> 31);
+        }
+    private:
+
+        state_type m_state;
 };
 
 class xoshiro256ss {
-  /* 256bit state, 64bit output, period of 2^256-1 (~1.2e77)*/
-  public:
-    typedef uint64_t result_t;
+    // 256bit state, 64bit output, period of 2^256-1 (~1.2e77)
+    public:
+        typedef uint64_t result_type;
+        typedef std::array<result_type,4> state_type;
 
-    static result_t splitmix64(result_t& s) {
-      result_t z = (s += 0x9e3779b97f4a7c15ULL);
-    	z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
-    	z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
-    	return z ^ (z >> 31);
-    }
+        static constexpr result_type min() { return 0; }
+        static constexpr result_type max() { return ~result_type(0ULL); }
 
-    static result_t rotl(result_t x, unsigned k) {
-      return (x << k) | (x >> (64 - k));
-    }
+        xoshiro256ss(result_type s = 0) { seed(s); }
 
-    static constexpr result_t min() { return 0; }
-    static constexpr result_t max() { return ~result_t(0ULL); }
+        const state_type& state() const {
+            return m_state;
+        }
 
-    xoshiro256ss(result_t s = 0) {
-      seed(s);
-    }
+        void state(state_type new_state) {
+            m_state = new_state;
+        }
 
-    void seed(result_t s = 0) {
-      for (result_t& s_i : m_s)
-        s_i = splitmix64(s);
-    }
+        void seed(result_type s = 0) {
+            splitmix64 srandom(s);
+            for (result_type& s_i : m_state)
+                s_i = srandom();
+        }
 
-    void random_seed() {
-      seed(produce_random_seed());
-    }
+        void random_seed() {
+            seed(produce_random_seed());
+        }
 
-    result_t operator()() {
-      result_t result = rotl(m_s[1] * 5, 7) * 9;
-    	result_t t = m_s[1] << 17;
-    	m_s[2] ^= m_s[0];
-      m_s[3] ^= m_s[1];
-      m_s[1] ^= m_s[2];
-      m_s[0] ^= m_s[3];
-    	m_s[2] ^= t;
-    	m_s[3] = rotl(m_s[3], 45);
-    	return result;
-    }
+        result_type operator()() {
+            result_type result = rotl(m_state[1] * 5, 7) * 9;
+        	result_type t = m_state[1] << 17;
+        	m_state[2] ^= m_state[0];
+            m_state[3] ^= m_state[1];
+            m_state[1] ^= m_state[2];
+            m_state[0] ^= m_state[3];
+        	m_state[2] ^= t;
+        	m_state[3] = rotl(m_state[3], 45);
+        	return result;
+        }
 
-  private:
-    result_t m_s[4];
+    private:
+
+        static result_type rotl(result_type x, unsigned k) {
+            return (x << k) | (x >> (64 - k));
+        }
+
+        state_type m_state;
 };
 
 }
