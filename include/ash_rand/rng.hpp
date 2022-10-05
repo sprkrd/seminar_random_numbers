@@ -28,14 +28,6 @@ class ran {
             seed(s);
         }
 
-        const state_type& state() const {
-            return m_state;
-        }
-
-        void state(const state_type& new_state) {
-            m_state = new_state;
-        }
-
         void seed(result_type s) {
             m_state[1] = 4101842887655102017ULL;
             m_state[2] = 1;
@@ -77,14 +69,6 @@ class ranq1 {
             seed(s);
         }
 
-        state_type state() const {
-            return m_state;
-        }
-
-        void state(state_type new_state) {
-            m_state = new_state;
-        }
-
         void seed(result_type s) {
             m_state = 4101842887655102017ULL;
             m_state ^= s;
@@ -116,14 +100,6 @@ class pcg32 {
         static constexpr result_type max() { return ~result_type(0ULL); }
 
         pcg32(state_type s = 0) { seed(s); }
-
-        state_type state() const {
-            return m_state;
-        }
-
-        void state(state_type new_state) {
-            m_state = new_state;
-        }
 
         void seed(state_type s) {
             m_state = s;
@@ -157,15 +133,6 @@ class splitmix64 {
             return m_state;
         }
 
-        void state(state_type state) {
-            m_state = state;
-        }
-
-        void seed(state_type s) {
-            m_state = s;
-        }
-
-
         result_type operator()() {
             result_type z = (m_state += 0x9e3779b97f4a7c15ULL);
         	z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
@@ -187,14 +154,6 @@ class xoshiro256ss {
         static constexpr result_type max() { return ~result_type(0ULL); }
 
         xoshiro256ss(result_type s = 0) { seed(s); }
-
-        const state_type& state() const {
-            return m_state;
-        }
-
-        void state(state_type new_state) {
-            m_state = new_state;
-        }
 
         void seed(result_type s = 0) {
             splitmix64 srandom(s);
