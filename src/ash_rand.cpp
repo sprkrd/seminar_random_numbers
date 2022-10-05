@@ -21,8 +21,9 @@
 using namespace std;
 
 int main() {
-    ash_rand::pcg32 rng;
-    rng.random_seed();
+    auto seed = ash_rand::produce_random_seed();
+    ash_rand::randu rng(seed);
+    cout << ash_rand::randu::max() << endl;
     cout << rng() << endl;
     cout << rng() << endl;
     cout << rng() << endl;

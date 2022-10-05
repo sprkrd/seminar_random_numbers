@@ -10,6 +10,10 @@ inline uint64_t produce_random_seed() {
     return ((uint64_t)rdev())<<32 | rdev();
 }
 
+using randu = std::linear_congruential_engine<uint64_t,65539,0,2147483648>;
+
+using seq_nonrng = std::linear_congruential_engine<uint32_t,1,1,65536>;
+
 class ran {
     // From numerical recipes. 192 bit state, 64 bit generator, 3.138 * 10^57 period
 
@@ -41,10 +45,6 @@ class ran {
             (*this)();
             m_state[2] = m_state[1];
             (*this)();
-        }
-
-        void random_seed() {
-            seed(produce_random_seed());
         }
 
         result_type operator()() {
@@ -91,10 +91,6 @@ class ranq1 {
             m_state = (*this)();
         }
 
-        void random_seed() {
-            seed(produce_random_seed());
-        }
-
         result_type operator()() {
             m_state ^= m_state >> 21;
             m_state ^= m_state << 35;
@@ -134,10 +130,6 @@ class pcg32 {
             (*this)();
         }
 
-        void random_seed() {
-            seed(produce_random_seed());
-        }
-
         result_type operator()() {
             state_type old_state = m_state;
             m_state = m_state*mul + inc;
@@ -173,9 +165,6 @@ class splitmix64 {
             m_state = s;
         }
 
-        void random_seed() {
-            seed(produce_random_seed());
-        }
 
         result_type operator()() {
             result_type z = (m_state += 0x9e3779b97f4a7c15ULL);
@@ -211,10 +200,6 @@ class xoshiro256ss {
             splitmix64 srandom(s);
             for (result_type& s_i : m_state)
                 s_i = srandom();
-        }
-
-        void random_seed() {
-            seed(produce_random_seed());
         }
 
         result_type operator()() {
